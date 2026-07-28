@@ -23,6 +23,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class WorkflowIntegrationTest {
 
+    private static final String ALICE            = "alice";
+    private static final String BOB              = "bob";
+    private static final String CHARLIE          = "charlie";
+    private static final String NOBODY           = "nobody";
+    private static final String PASSWORD         = "password123";
+    private static final String WRONG_PASSWORD   = "wrong";
+    private static final String WORKSPACE_NAME   = "My Team";
+    private static final String ALICE_TEAM       = "Alice Team";
+    private static final String TASK_TITLE       = "Fix bug";
+    private static final String TASK_DESCRIPTION = "Details";
+    private static final String TASK_TO_DELETE   = "Delete me";
+    private static final String TASK_PROTECTED   = "Protected";
+    private static final String TASK_MY_TASK     = "My task";
+
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
 
@@ -31,19 +45,17 @@ class WorkflowIntegrationTest {
 
     @BeforeEach
     void setup() throws Exception {
-        register("alice", SystemRole.SYSTEM_ADMIN);
-        register("bob", SystemRole.SYSTEM_MEMBER);
-        aliceToken = login("alice");
-        bobToken = login("bob");
+        register(ALICE, SystemRole.SYSTEM_ADMIN);
+        register(BOB, SystemRole.SYSTEM_MEMBER);
+        aliceToken = login(ALICE);
+        bobToken = login(BOB);
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void register(String username, SystemRole role) throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                        new RegisterRequest(username, "password123", role))))
+                        new RegisterRequest(username, PASSWORD, role))))
                 .andExpect(status().isCreated());
     }
 
@@ -51,7 +63,7 @@ class WorkflowIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                        new LoginRequest(username, "password123"))))
+                        new LoginRequest(username, PASSWORD))))
                 .andExpect(status().isOk())
                 .andReturn();
         return objectMapper.readTree(result.getResponse().getContentAsString())
@@ -88,14 +100,12 @@ class WorkflowIntegrationTest {
                 .get("id").asText();
     }
 
-    // ── Auth ──────────────────────────────────────────────────────────────────
-
     @Test
     void register_shouldReturn409_whenUsernameAlreadyTaken() throws Exception {
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
-                        new RegisterRequest("alice", "other", SystemRole.SYSTEM_ADMIN))))
+                        new RegisterRequest(ALICE, PASSWORD, SystemRole.SYSTEM_ADMIN))))
                 .andExpect(status().isConflict());
     }
 
@@ -103,20 +113,18 @@ class WorkflowIntegrationTest {
     void login_shouldReturn401_whenWrongPassword() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new LoginRequest("alice", "wrong"))))
+                .content(objectMapper.writeValueAsString(new LoginRequest(ALICE, WRONG_PASSWORD))))
                 .andExpect(status().isUnauthorized());
     }
-
-    // ── Workspace creation RBAC ───────────────────────────────────────────────
 
     @Test
     void createWorkspace_shouldReturn201_whenSystemAdmin() throws Exception {
         mockMvc.perform(post("/api/workspaces")
                 .header("Authorization", "Bearer " + aliceToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"My Team\"}"))
+                .content("{\"name\":\"" + WORKSPACE_NAME + "\"}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("My Team"));
+                .andExpect(jsonPath("$.name").value(WORKSPACE_NAME));
     }
 
     @Test
@@ -124,7 +132,7 @@ class WorkflowIntegrationTest {
         mockMvc.perform(post("/api/workspaces")
                 .header("Authorization", "Bearer " + bobToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"Bob Workspace\"}"))
+                .content("{\"name\":\"" + WORKSPACE_NAME + "\"}"))
                 .andExpect(status().isForbidden());
     }
 
@@ -132,23 +140,19 @@ class WorkflowIntegrationTest {
     void createWorkspace_shouldReturn401_whenNotAuthenticated() throws Exception {
         mockMvc.perform(post("/api/workspaces")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"No Auth\"}"))
+                .content("{\"name\":\"" + WORKSPACE_NAME + "\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
-    // ── Workspace visibility ──────────────────────────────────────────────────
-
     @Test
     void getWorkspaces_shouldOnlyShowWorkspacesUserIsMemberOf() throws Exception {
-        createWorkspace(aliceToken, "Alice Team");
+        createWorkspace(aliceToken, ALICE_TEAM);
 
-        // Alice sees her workspace
         mockMvc.perform(get("/api/workspaces")
                 .header("Authorization", "Bearer " + aliceToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
-        // Bob sees nothing
         mockMvc.perform(get("/api/workspaces")
                 .header("Authorization", "Bearer " + bobToken))
                 .andExpect(status().isOk())
@@ -157,8 +161,8 @@ class WorkflowIntegrationTest {
 
     @Test
     void getWorkspaces_shouldShowWorkspace_afterBeingInvited() throws Exception {
-        String wsId = createWorkspace(aliceToken, "Alice Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
+        String wsId = createWorkspace(aliceToken, ALICE_TEAM);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
 
         mockMvc.perform(get("/api/workspaces")
                 .header("Authorization", "Bearer " + bobToken))
@@ -166,48 +170,46 @@ class WorkflowIntegrationTest {
                 .andExpect(jsonPath("$.length()").value(1));
     }
 
-    // ── Member management ─────────────────────────────────────────────────────
-
     @Test
     void addMember_shouldReturn404_whenUserDoesNotExist() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
         mockMvc.perform(post("/api/workspaces/" + wsId + "/members")
                 .header("Authorization", "Bearer " + aliceToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new AddMemberRequest("nobody", WorkspaceRole.MEMBER))))
+                .content(objectMapper.writeValueAsString(new AddMemberRequest(NOBODY, WorkspaceRole.MEMBER))))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void addMember_shouldReturn409_whenAlreadyMember() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
         mockMvc.perform(post("/api/workspaces/" + wsId + "/members")
                 .header("Authorization", "Bearer " + aliceToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new AddMemberRequest("bob", WorkspaceRole.MEMBER))))
+                .content(objectMapper.writeValueAsString(new AddMemberRequest(BOB, WorkspaceRole.MEMBER))))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void addMember_shouldReturn403_whenCallerIsMemberNotAdmin() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
-        register("charlie", SystemRole.SYSTEM_MEMBER);
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
+        register(CHARLIE, SystemRole.SYSTEM_MEMBER);
 
         mockMvc.perform(post("/api/workspaces/" + wsId + "/members")
                 .header("Authorization", "Bearer " + bobToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new AddMemberRequest("charlie", WorkspaceRole.MEMBER))))
+                .content(objectMapper.writeValueAsString(new AddMemberRequest(CHARLIE, WorkspaceRole.MEMBER))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void removeMember_shouldReturn204_andMemberLosesAccess() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
 
-        mockMvc.perform(delete("/api/workspaces/" + wsId + "/members/bob")
+        mockMvc.perform(delete("/api/workspaces/" + wsId + "/members/" + BOB)
                 .header("Authorization", "Bearer " + aliceToken))
                 .andExpect(status().isNoContent());
 
@@ -219,45 +221,43 @@ class WorkflowIntegrationTest {
 
     @Test
     void removeMember_shouldReturn403_whenCallerIsMember() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
 
-        mockMvc.perform(delete("/api/workspaces/" + wsId + "/members/alice")
+        mockMvc.perform(delete("/api/workspaces/" + wsId + "/members/" + ALICE)
                 .header("Authorization", "Bearer " + bobToken))
                 .andExpect(status().isForbidden());
     }
 
-    // ── Task operations ───────────────────────────────────────────────────────
-
     @Test
     void createTask_shouldReturn201_withTodoStatus_whenMemberCreates() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
 
         mockMvc.perform(post("/api/workspaces/" + wsId + "/tasks")
                 .header("Authorization", "Bearer " + bobToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new CreateTaskRequest("Fix bug", "Details", null))))
+                .content(objectMapper.writeValueAsString(new CreateTaskRequest(TASK_TITLE, TASK_DESCRIPTION, null))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("Fix bug"))
+                .andExpect(jsonPath("$.title").value(TASK_TITLE))
                 .andExpect(jsonPath("$.status").value("TODO"));
     }
 
     @Test
     void createTask_shouldReturn403_whenNonMemberTriesToCreate() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
 
         mockMvc.perform(post("/api/workspaces/" + wsId + "/tasks")
                 .header("Authorization", "Bearer " + bobToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new CreateTaskRequest("Hack", null, null))))
+                .content(objectMapper.writeValueAsString(new CreateTaskRequest(TASK_TITLE, null, null))))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void updateTaskStatus_shouldReturn200_whenMemberUpdates() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        String taskId = createTask(aliceToken, wsId, "My task");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        String taskId = createTask(aliceToken, wsId, TASK_MY_TASK);
 
         mockMvc.perform(patch("/api/workspaces/" + wsId + "/tasks/" + taskId + "/status")
                 .header("Authorization", "Bearer " + aliceToken)
@@ -269,8 +269,8 @@ class WorkflowIntegrationTest {
 
     @Test
     void deleteTask_shouldReturn204_whenAdminDeletes() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        String taskId = createTask(aliceToken, wsId, "Delete me");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        String taskId = createTask(aliceToken, wsId, TASK_TO_DELETE);
 
         mockMvc.perform(delete("/api/workspaces/" + wsId + "/tasks/" + taskId)
                 .header("Authorization", "Bearer " + aliceToken))
@@ -279,9 +279,9 @@ class WorkflowIntegrationTest {
 
     @Test
     void deleteTask_shouldReturn403_whenMemberTriesToDelete() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
-        addMember(aliceToken, wsId, "bob", WorkspaceRole.MEMBER);
-        String taskId = createTask(aliceToken, wsId, "Protected");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
+        addMember(aliceToken, wsId, BOB, WorkspaceRole.MEMBER);
+        String taskId = createTask(aliceToken, wsId, TASK_PROTECTED);
 
         mockMvc.perform(delete("/api/workspaces/" + wsId + "/tasks/" + taskId)
                 .header("Authorization", "Bearer " + bobToken))
@@ -290,7 +290,7 @@ class WorkflowIntegrationTest {
 
     @Test
     void getTasks_shouldReturn403_whenNonMemberTriesToView() throws Exception {
-        String wsId = createWorkspace(aliceToken, "My Team");
+        String wsId = createWorkspace(aliceToken, WORKSPACE_NAME);
 
         mockMvc.perform(get("/api/workspaces/" + wsId + "/tasks")
                 .header("Authorization", "Bearer " + bobToken))

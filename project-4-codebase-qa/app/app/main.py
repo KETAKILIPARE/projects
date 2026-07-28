@@ -1,7 +1,10 @@
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.api.routes import router
+
+STATIC_DIR = Path(__file__).parent.parent / "static"
 
 app = FastAPI(
     title="Codebase Q&A Assistant",
@@ -16,9 +19,10 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 app.include_router(router)
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-@app.get("/")
-def index():
-    return FileResponse("static/index.html")
+    @app.get("/")
+    def index():
+        return FileResponse(str(STATIC_DIR / "index.html"))

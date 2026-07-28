@@ -13,5 +13,6 @@ public record ResourceResponse(
         String region,
         ResourceStatus status,
         String createdBy,
-        Instant createdAt
+        Instant createdAt,
+        String awsResourceId
 ) {}

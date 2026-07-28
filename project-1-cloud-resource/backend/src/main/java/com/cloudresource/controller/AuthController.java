@@ -42,7 +42,8 @@ public class AuthController {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
-        String token = jwtUtil.generateToken(auth.getName());
+        User user = userRepository.findByUsername(auth.getName()).orElseThrow();
+        String token = jwtUtil.generateToken(auth.getName(), user.getRole().name());
         return ResponseEntity.ok(new LoginResponse(token));
     }
 }

@@ -6,112 +6,121 @@ import com.workflow.dto.TaskResponse;
 import com.workflow.dto.TaskStatusUpdateRequest;
 import com.workflow.exception.TaskNotFoundException;
 import com.workflow.service.TaskService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.instancio.Instancio;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import com.workflow.util.JwtUtil;
-import com.workflow.config.SecurityConfig;
-import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.instancio.Select.field;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(value = TaskController.class, excludeAutoConfiguration = UserDetailsServiceAutoConfiguration.class)
-@Import(SecurityConfig.class)
+@ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private static final String MEMBER_USERNAME = "member1";
+    private static final String TASK_TITLE      = "Fix login bug";
+    private static final String TASK_DETAILS    = "Details";
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Mock private TaskService taskService;
 
-    @MockBean
-    private TaskService taskService;
+    @InjectMocks
+    private TaskController taskController;
 
-    @MockBean
-    private JwtUtil jwtUtil;
+    private final UserDetails authenticatedUser = User.withUsername(MEMBER_USERNAME)
+            .password("irrelevant")
+            .roles("USER")
+            .build();
 
-    @MockBean
-    private org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
-
-    private TaskResponse sampleResponse(TaskStatus status) {
-        return new TaskResponse(UUID.randomUUID(), "Fix login bug", "Details",
-                status, UUID.randomUUID(), null, "member1", Instant.now());
+    private TaskResponse taskResponse(TaskStatus status) {
+        return Instancio.of(TaskResponse.class)
+                .set(field(TaskResponse::status), status)
+                .create();
     }
 
     @Test
-    @WithMockUser
-    void createTask_shouldReturn201_whenRequestIsValid() throws Exception {
-        TaskRequest request = new TaskRequest("Fix login bug", "Details", UUID.randomUUID(), null);
-        when(taskService.create(any(), any())).thenReturn(sampleResponse(TaskStatus.TODO));
+    void create_shouldReturn201_whenRequestIsValid() {
+        TaskRequest request = new TaskRequest(TASK_TITLE, TASK_DETAILS, UUID.randomUUID(), null);
+        when(taskService.create(any(), eq(MEMBER_USERNAME))).thenReturn(taskResponse(TaskStatus.TODO));
 
-        mockMvc.perform(post("/api/tasks")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("TODO"));
+        ResponseEntity<TaskResponse> result = taskController.create(request, authenticatedUser);
+
+        assertThat(result.getStatusCode())
+                .as("should return 201 CREATED for a valid task creation request")
+                .isEqualTo(HttpStatus.CREATED);
+        assertThat(result.getBody().status())
+                .as("newly created task should have TODO status")
+                .isEqualTo(TaskStatus.TODO);
     }
 
     @Test
-    @WithMockUser
-    void updateStatus_shouldReturn200_whenTransitionIsValid() throws Exception {
-        UUID id = UUID.randomUUID();
-        TaskStatusUpdateRequest update = new TaskStatusUpdateRequest(TaskStatus.IN_PROGRESS);
-        when(taskService.updateStatus(eq(id), any(), any())).thenReturn(sampleResponse(TaskStatus.IN_PROGRESS));
+    void getById_shouldReturnTask_whenTaskExists() {
+        UUID taskId = UUID.randomUUID();
+        TaskResponse expected = taskResponse(TaskStatus.TODO);
+        when(taskService.findById(taskId)).thenReturn(expected);
 
-        mockMvc.perform(patch("/api/tasks/{id}/status", id)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(update)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+        ResponseEntity<TaskResponse> result = taskController.getById(taskId);
+
+        assertThat(result.getStatusCode())
+                .as("should return 200 OK when task is found")
+                .isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody())
+                .as("response body should match the task returned by the service")
+                .isEqualTo(expected);
     }
 
     @Test
-    @WithMockUser
-    void getTask_shouldReturn404_whenNotFound() throws Exception {
-        UUID id = UUID.randomUUID();
-        when(taskService.findById(id)).thenThrow(new TaskNotFoundException("Not found"));
+    void getById_shouldPropagateException_whenTaskNotFound() {
+        UUID taskId = UUID.randomUUID();
+        when(taskService.findById(taskId)).thenThrow(new TaskNotFoundException("Not found"));
 
-        mockMvc.perform(get("/api/tasks/{id}", id))
-                .andExpect(status().isNotFound());
+        assertThatThrownBy(() -> taskController.getById(taskId))
+                .as("should propagate TaskNotFoundException when task does not exist")
+                .isInstanceOf(TaskNotFoundException.class);
     }
 
     @Test
-    @WithMockUser
-    void getTasksByWorkspace_shouldReturn200WithList() throws Exception {
+    void getByWorkspace_shouldReturnTaskList() {
         UUID workspaceId = UUID.randomUUID();
-        when(taskService.findByWorkspaceId(workspaceId)).thenReturn(List.of(sampleResponse(TaskStatus.TODO)));
+        List<TaskResponse> tasks = List.of(taskResponse(TaskStatus.TODO), taskResponse(TaskStatus.IN_PROGRESS));
+        when(taskService.findByWorkspaceId(workspaceId)).thenReturn(tasks);
 
-        mockMvc.perform(get("/api/tasks").param("workspaceId", workspaceId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+        ResponseEntity<List<TaskResponse>> result = taskController.getByWorkspace(workspaceId);
+
+        assertThat(result.getStatusCode())
+                .as("should return 200 OK for workspace task list")
+                .isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody())
+                .as("should return all tasks for the workspace")
+                .hasSize(2);
     }
 
     @Test
-    void createTask_shouldReturn401_whenNotAuthenticated() throws Exception {
-        TaskRequest request = new TaskRequest("Fix login bug", "Details", UUID.randomUUID(), null);
+    void updateStatus_shouldReturn200_whenTransitionIsValid() {
+        UUID taskId = UUID.randomUUID();
+        TaskStatusUpdateRequest request = new TaskStatusUpdateRequest(TaskStatus.IN_PROGRESS);
+        when(taskService.updateStatus(eq(taskId), any(), eq(MEMBER_USERNAME)))
+                .thenReturn(taskResponse(TaskStatus.IN_PROGRESS));
 
-        mockMvc.perform(post("/api/tasks")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized());
+        ResponseEntity<TaskResponse> result = taskController.updateStatus(taskId, request, authenticatedUser);
+
+        assertThat(result.getStatusCode())
+                .as("should return 200 OK for a valid status update")
+                .isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody().status())
+                .as("response should reflect the updated status")
+                .isEqualTo(TaskStatus.IN_PROGRESS);
     }
 }

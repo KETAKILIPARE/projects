@@ -41,6 +41,8 @@ public class Resource {
 
     private Instant updatedAt;
 
+    private String awsResourceId;
+
     public Resource(String name, ResourceType type, String region, String createdBy) {
         this.name = name;
         this.type = type;

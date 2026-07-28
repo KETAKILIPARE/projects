@@ -39,7 +39,7 @@ docker compose up -d
 
 Manage cloud resources (servers, databases, storage) through a web UI instead of the AWS console.
 
-**Features:** JWT auth, role-based access (ADMIN / OPERATOR / VIEWER), resource state machine, audit log, 21 tests passing.
+**Features:** JWT auth, role-based access (ADMIN / OPERATOR / VIEWER), resource state machine, audit log, 25 tests passing.
 
 ```bash
 # Backend

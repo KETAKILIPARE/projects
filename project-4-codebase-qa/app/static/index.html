@@ -3,151 +3,545 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Codebase Q&A Assistant</title>
+  <title>CodeLens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #080a0f;
+      --surface:   #0e1117;
+      --surface-2: #161b24;
+      --surface-3: #1e2533;
+      --border:    #1e2533;
+      --border-2:  #2a3347;
+      --text:      #e2e8f0;
+      --text-2:    #7c8fa6;
+      --text-3:    #4a5568;
+      --accent:    #3b82f6;
+      --accent-2:  #60a5fa;
+      --green:     #10b981;
+      --red:       #ef4444;
+      --amber:     #f59e0b;
+    }
+
+    html, body { height: 100%; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d1117; color: #e6edf3;
-      min-height: 100vh; display: flex; flex-direction: column;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
+
+    /* ── Header ── */
     header {
-      border-bottom: 1px solid #21262d; padding: 1rem 2rem;
-      display: flex; align-items: center; justify-content: space-between;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
     }
-    .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 600; }
-    .logo-icon {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, #238636, #1f6feb);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .status-pill {
-      display: flex; align-items: center; gap: 0.5rem;
-      background: #161b22; border: 1px solid #21262d;
-      border-radius: 999px; padding: 0.35rem 0.85rem;
-      font-size: 0.8rem; color: #8b949e;
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #6e7681; }
-    .dot.ready { background: #3fb950; }
+
+    .logo-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .logo-tag {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 400;
+      margin-left: 2px;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--text-2);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-3);
+      transition: background 0.3s;
+    }
+
+    .status-dot.ready { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    /* ── Layout ── */
     main {
-      flex: 1; display: grid; grid-template-columns: 300px 1fr;
-      height: calc(100vh - 57px);
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      overflow: hidden;
     }
+
+    /* ── Sidebar ── */
     .sidebar {
-      border-right: 1px solid #21262d; padding: 1.5rem;
-      display: flex; flex-direction: column; gap: 1.5rem; overflow-y: auto;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
+
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .sidebar-body::-webkit-scrollbar { width: 4px; }
+    .sidebar-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
     .section-label {
-      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.05em; color: #8b949e; margin-bottom: 0.6rem;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      margin-bottom: 8px;
     }
-    input, textarea {
-      background: #161b22; border: 1px solid #30363d; border-radius: 6px;
-      color: #e6edf3; padding: 0.6rem 0.75rem; font-size: 0.875rem;
-      width: 100%; outline: none; font-family: inherit;
+
+    .input-field {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
       transition: border-color 0.15s;
     }
-    input:focus, textarea:focus { border-color: #1f6feb; }
+
+    .input-field:focus { border-color: var(--accent); }
+    .input-field::placeholder { color: var(--text-3); }
+
     .btn {
-      padding: 0.55rem 1rem; border-radius: 6px; border: none;
-      font-size: 0.875rem; font-weight: 500; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      transition: opacity 0.15s; width: 100%; margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity 0.15s, background 0.15s;
+      margin-top: 6px;
     }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn:hover:not(:disabled) { opacity: 0.85; }
-    .btn-green { background: #238636; color: #fff; }
-    .btn-red { background: #da3633; color: #fff; }
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .stat {
-      background: #161b22; border: 1px solid #21262d;
-      border-radius: 6px; padding: 0.75rem; text-align: center;
+
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { opacity: 0.88; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-danger  { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.2); opacity: 1; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
-    .stat-val { font-size: 1.5rem; font-weight: 700; color: #1f6feb; }
-    .stat-lbl { font-size: 0.72rem; color: #8b949e; margin-top: 0.2rem; }
-    .file-list { display: flex; flex-direction: column; gap: 0.35rem; }
+
+    .stat-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent-2);
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-3);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
     .file-item {
-      font-size: 0.78rem; color: #8b949e; padding: 0.3rem 0.5rem;
-      background: #161b22; border-radius: 4px;
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      background: var(--surface-2);
+      border-radius: 5px;
+      font-size: 11px;
+      color: var(--text-2);
+      overflow: hidden;
     }
-    .content { display: flex; flex-direction: column; overflow: hidden; }
-    .chat { flex: 1; overflow-y: auto; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-    .empty {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 1rem; color: #8b949e; text-align: center;
+
+    .file-item span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .empty h2 { font-size: 1.2rem; color: #e6edf3; }
-    .empty p { font-size: 0.875rem; max-width: 380px; line-height: 1.6; }
-    .suggestions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 0.5rem; }
+
+    .file-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── Chat area ── */
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .empty-icon {
+      width: 56px;
+      height: 56px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .empty-sub {
+      font-size: 13px;
+      color: var(--text-2);
+      max-width: 360px;
+      line-height: 1.6;
+    }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
     .suggestion {
-      background: #161b22; border: 1px solid #30363d; border-radius: 6px;
-      padding: 0.45rem 0.8rem; font-size: 0.8rem; cursor: pointer; color: #8b949e;
-      transition: all 0.15s;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      font-family: inherit;
     }
-    .suggestion:hover { border-color: #1f6feb; color: #e6edf3; }
-    .message { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .suggestion:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── Messages ── */
+    .message { display: flex; flex-direction: column; gap: 10px; }
+
+    .q-row { display: flex; justify-content: flex-end; }
+
     .q-bubble {
-      align-self: flex-end; background: #1f6feb; color: #fff;
-      padding: 0.75rem 1rem; border-radius: 12px 12px 2px 12px;
-      max-width: 70%; font-size: 0.9rem; line-height: 1.5;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 14px 14px 3px 14px;
+      max-width: 65%;
+      font-size: 13px;
+      line-height: 1.55;
+      word-break: break-word;
     }
+
+    .a-row { display: flex; justify-content: flex-start; }
+
     .a-bubble {
-      align-self: flex-start; background: #161b22; border: 1px solid #21262d;
-      border-radius: 2px 12px 12px 12px; max-width: 85%; overflow: hidden;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px 14px 14px 14px;
+      max-width: 88%;
+      overflow: hidden;
     }
-    .a-content { padding: 1rem; font-size: 0.875rem; line-height: 1.7; }
+
+    .a-content {
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--text);
+    }
+
     .a-content pre {
-      background: #0d1117; padding: 0.75rem; border-radius: 6px;
-      overflow-x: auto; margin: 0.5rem 0; font-size: 0.8rem;
-      border: 1px solid #21262d; white-space: pre-wrap;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      overflow-x: auto;
+      margin: 10px 0;
+      font-size: 12px;
+      white-space: pre-wrap;
     }
-    .a-content code { font-family: Consolas, monospace; font-size: 0.82rem; }
-    .sources {
-      border-top: 1px solid #21262d; padding: 0.6rem 1rem;
-      display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center;
+
+    .a-content code {
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 12px;
+      background: var(--surface-3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--accent-2);
     }
-    .src-label { font-size: 0.7rem; color: #8b949e; margin-right: 0.25rem; }
+
+    .a-content pre code {
+      background: none;
+      padding: 0;
+      color: var(--text);
+    }
+
+    .a-content strong { color: var(--text); font-weight: 600; }
+
+    .sources-bar {
+      border-top: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sources-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-3);
+    }
+
     .src-chip {
-      background: #0d1117; border: 1px solid #30363d; border-radius: 4px;
-      padding: 0.2rem 0.5rem; font-size: 0.72rem; color: #8b949e;
-      font-family: Consolas, monospace;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: var(--text-2);
+      font-family: 'Cascadia Code', Consolas, monospace;
     }
-    .loading {
-      align-self: flex-start; background: #161b22; border: 1px solid #21262d;
-      border-radius: 2px 12px 12px 12px; padding: 1rem;
-      display: flex; gap: 0.4rem; align-items: center;
+
+    /* ── Typing indicator ── */
+    .typing {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px 14px 14px 14px;
+      width: fit-content;
     }
-    .ld { width: 7px; height: 7px; background: #8b949e; border-radius: 50%; animation: b 1.2s infinite; }
-    .ld:nth-child(2) { animation-delay: 0.2s; }
-    .ld:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes b { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--text-3);
+      border-radius: 50%;
+      animation: pulse 1.4s infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(1); opacity: 0.4; }
+      40% { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* ── Query bar ── */
     .query-bar {
-      border-top: 1px solid #21262d; padding: 1rem 2rem;
-      display: flex; gap: 0.75rem; align-items: flex-end;
+      border-top: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--surface);
     }
-    .query-bar textarea { flex: 1; resize: none; min-height: 44px; max-height: 120px; }
+
+    .query-wrap {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: flex-end;
+      padding: 2px 4px 2px 12px;
+      transition: border-color 0.15s;
+    }
+
+    .query-wrap:focus-within { border-color: var(--accent); }
+
+    .query-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+      min-height: 36px;
+      max-height: 120px;
+      padding: 8px 0;
+      line-height: 1.5;
+    }
+
+    .query-input::placeholder { color: var(--text-3); }
+
     .send-btn {
-      padding: 0.55rem 1.2rem; background: #238636; color: #fff;
-      border: none; border-radius: 6px; font-size: 0.875rem;
-      font-weight: 500; cursor: pointer; white-space: nowrap;
+      width: 34px;
+      height: 34px;
+      background: var(--accent);
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-bottom: 1px;
+      transition: background 0.15s, opacity 0.15s;
     }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .send-btn:hover { background: var(--accent-2); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .query-hint {
+      font-size: 11px;
+      color: var(--text-3);
+      text-align: center;
+      padding: 4px 0 0;
+    }
+
+    /* ── Toast ── */
     .toast {
-      position: fixed; bottom: 1.5rem; right: 1.5rem;
-      background: #161b22; border: 1px solid #30363d;
-      border-radius: 8px; padding: 0.75rem 1rem;
-      font-size: 0.85rem; display: none; z-index: 100;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--text);
+      display: none;
+      z-index: 999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      max-width: 320px;
     }
-    .toast.show { display: block; }
-    .toast.ok { border-color: #238636; }
-    .toast.err { border-color: #da3633; }
+
+    .toast.show { display: block; animation: slideIn 0.2s ease; }
+    .toast.ok  { border-color: var(--green); }
+    .toast.err { border-color: var(--red); }
+
+    @keyframes slideIn {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+
     .spinner {
-      width: 14px; height: 14px; border: 2px solid #30363d;
-      border-top-color: #1f6feb; border-radius: 50%;
-      animation: spin 0.6s linear infinite; display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
@@ -155,54 +549,107 @@
 
 <header>
   <div class="logo">
-    <div class="logo-icon">🔍</div>
-    Codebase Q&amp;A Assistant
+    <div class="logo-mark">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        <path d="M11 8v6M8 11h6" stroke-width="2"/>
+      </svg>
+    </div>
+    <div>
+      <span class="logo-name">CodeLens</span>
+      <span class="logo-tag">/ AI Codebase Assistant</span>
+    </div>
   </div>
-  <div class="status-pill">
-    <div class="dot" id="statusDot"></div>
+  <div class="status-badge">
+    <div class="status-dot" id="statusDot"></div>
     <span id="statusText">Not indexed</span>
   </div>
 </header>
 
 <main>
   <aside class="sidebar">
-    <div>
-      <div class="section-label">Index Codebase</div>
-      <input type="text" id="folderPath" placeholder="c:\path\to\project" />
-      <button class="btn btn-green" id="indexBtn" onclick="indexFolder()">⚡ Index Folder</button>
-      <button class="btn btn-red" onclick="clearIndex()">🗑 Clear Index</button>
-    </div>
-    <div>
-      <div class="section-label">Stats</div>
-      <div class="stats">
-        <div class="stat"><div class="stat-val" id="chunkCount">0</div><div class="stat-lbl">Chunks</div></div>
-        <div class="stat"><div class="stat-val" id="fileCount">0</div><div class="stat-lbl">Files</div></div>
+    <div class="sidebar-body">
+
+      <div>
+        <div class="section-label">Index Codebase</div>
+        <input class="input-field" type="text" id="folderPath"
+          placeholder="C:\path\to\your\project" />
+        <button class="btn btn-primary" id="indexBtn" onclick="indexFolder()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+            <polyline points="13 2 13 9 20 9"/>
+          </svg>
+          Index Folder
+        </button>
+        <button class="btn btn-danger" onclick="clearIndex()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+          </svg>
+          Clear Index
+        </button>
       </div>
-    </div>
-    <div id="filesSection" style="display:none">
-      <div class="section-label">Indexed Files</div>
-      <div class="file-list" id="fileList"></div>
+
+      <div>
+        <div class="section-label">Index Stats</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value" id="chunkCount">0</div>
+            <div class="stat-label">Chunks</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="fileCount">0</div>
+            <div class="stat-label">Files</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="filesSection" style="display:none">
+        <div class="section-label">Indexed Files</div>
+        <div class="file-list" id="fileList"></div>
+      </div>
+
     </div>
   </aside>
 
-  <div class="content">
-    <div class="chat" id="chat">
-      <div class="empty" id="empty">
-        <div style="font-size:2.5rem">💬</div>
-        <h2>Ask anything about your code</h2>
-        <p>Index a project folder on the left, then ask questions in plain English.</p>
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </div>
+        <div class="empty-title">Ask anything about your code</div>
+        <div class="empty-sub">Index a project folder on the left, then ask questions in plain English about architecture, logic, or implementation details.</div>
         <div class="suggestions">
-          <div class="suggestion" onclick="use(this)">How does authentication work?</div>
-          <div class="suggestion" onclick="use(this)">Where are tasks created?</div>
-          <div class="suggestion" onclick="use(this)">How is RBAC enforced?</div>
-          <div class="suggestion" onclick="use(this)">What happens on login?</div>
+          <button class="suggestion" onclick="use(this)">How does authentication work?</button>
+          <button class="suggestion" onclick="use(this)">Where are tasks created?</button>
+          <button class="suggestion" onclick="use(this)">How is RBAC enforced?</button>
+          <button class="suggestion" onclick="use(this)">What happens on login?</button>
+          <button class="suggestion" onclick="use(this)">How is rate limiting implemented?</button>
+          <button class="suggestion" onclick="use(this)">Where is JWT validated?</button>
         </div>
       </div>
     </div>
+
     <div class="query-bar">
-      <textarea id="q" placeholder="Ask a question about your codebase... (Enter to send)"
-        onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
-      <button class="send-btn" id="askBtn" onclick="ask()">Ask →</button>
+      <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+        <div class="query-wrap">
+          <textarea class="query-input" id="q"
+            placeholder="Ask a question about your codebase…"
+            onkeydown="handleKey(event)"
+            oninput="resize(this)"
+            rows="1"></textarea>
+          <button class="send-btn" id="askBtn" onclick="ask()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="query-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for new line</div>
+      </div>
     </div>
   </div>
 </main>
@@ -221,17 +668,23 @@ async function loadStatus() {
 }
 
 function applyStatus(d) {
-  document.getElementById('statusDot').className = 'dot' + (d.is_ready ? ' ready' : '');
-  document.getElementById('statusText').textContent = d.is_ready ? `${d.total_chunks} chunks indexed` : 'Not indexed';
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className  = 'status-dot' + (d.is_ready ? ' ready' : '');
+  text.textContent = d.is_ready ? `${d.total_chunks} chunks indexed` : 'Not indexed';
   document.getElementById('chunkCount').textContent = d.total_chunks;
-  document.getElementById('fileCount').textContent = d.indexed_files.length;
-  const fs = document.getElementById('filesSection');
-  const fl = document.getElementById('fileList');
+  document.getElementById('fileCount').textContent  = d.indexed_files.length;
+
+  const sec  = document.getElementById('filesSection');
+  const list = document.getElementById('fileList');
   if (d.indexed_files.length > 0) {
-    fs.style.display = 'block';
-    fl.innerHTML = d.indexed_files.map(f => `<div class="file-item" title="${f}">📄 ${f.split(/[\\/]/).pop()}</div>`).join('');
+    sec.style.display = 'block';
+    list.innerHTML = d.indexed_files.map(f => {
+      const name = f.split(/[\\\/]/).pop();
+      return `<div class="file-item"><div class="file-dot"></div><span title="${esc(f)}">${esc(name)}</span></div>`;
+    }).join('');
   } else {
-    fs.style.display = 'none';
+    sec.style.display = 'none';
   }
 }
 
@@ -240,40 +693,40 @@ async function indexFolder() {
   if (!path) { toast('Enter a folder path', 'err'); return; }
   const btn = document.getElementById('indexBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Indexing...';
+  btn.innerHTML = '<span class="spinner"></span> Indexing…';
   try {
     const r = await fetch(`${API}/index`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({folder_path: path})
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folder_path: path })
     });
     const text = await r.text();
     let d;
     try { d = JSON.parse(text); } catch { throw new Error(text); }
     if (!r.ok) throw new Error(d.detail || JSON.stringify(d));
     await loadStatus();
-    toast(`✅ ${d.indexed_files} files, ${d.total_chunks} chunks indexed`, 'ok');
-  } catch(e) {
-    toast(`❌ ${e.message}`, 'err');
-    console.error(e);
+    toast(`Indexed ${d.indexed_files} files · ${d.total_chunks} chunks`, 'ok');
+  } catch (e) {
+    toast(e.message, 'err');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '⚡ Index Folder';
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg> Index Folder`;
   }
 }
 
 async function clearIndex() {
-  await fetch(`${API}/index`, {method:'DELETE'});
-  applyStatus({is_ready:false, total_chunks:0, indexed_files:[]});
+  await fetch(`${API}/index`, { method: 'DELETE' });
+  applyStatus({ is_ready: false, total_chunks: 0, indexed_files: [] });
   toast('Index cleared', 'ok');
 }
 
 async function ask() {
-  const input = document.getElementById('q');
+  const input    = document.getElementById('q');
   const question = input.value.trim();
   if (!question) return;
 
-  const chat = document.getElementById('chat');
-  const empty = document.getElementById('empty');
+  const messages = document.getElementById('messages');
+  const empty    = document.getElementById('emptyState');
   if (empty) empty.remove();
 
   input.value = '';
@@ -282,42 +735,44 @@ async function ask() {
 
   const msg = document.createElement('div');
   msg.className = 'message';
-  msg.innerHTML = `<div class="q-bubble">${esc(question)}</div>`;
-  chat.appendChild(msg);
+  msg.innerHTML = `<div class="q-row"><div class="q-bubble">${esc(question)}</div></div>`;
+  messages.appendChild(msg);
 
-  const loading = document.createElement('div');
-  loading.className = 'loading';
-  loading.innerHTML = '<div class="ld"></div><div class="ld"></div><div class="ld"></div>';
-  msg.appendChild(loading);
-  chat.scrollTop = chat.scrollHeight;
+  const typingRow = document.createElement('div');
+  typingRow.className = 'a-row';
+  typingRow.innerHTML = `<div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+  msg.appendChild(typingRow);
+  messages.scrollTop = messages.scrollHeight;
 
   try {
     const r = await fetch(`${API}/query`, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({question, top_k: 8})
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, top_k: 8 })
     });
     const d = await r.json();
-    loading.remove();
+    typingRow.remove();
 
-    const files = [...new Set(d.sources.map(s => s.file_path.split(/[\\/]/).pop()))];
-    const chips = files.map(f => `<span class="src-chip">${f}</span>`).join('');
+    const files = [...new Set(d.sources.map(s => s.file_path.split(/[\\\/]/).pop()))];
+    const chips = files.map(f => `<span class="src-chip">${esc(f)}</span>`).join('');
 
-    const ans = document.createElement('div');
-    ans.className = 'a-bubble';
-    ans.innerHTML = `
-      <div class="a-content">${fmt(d.answer)}</div>
-      ${files.length ? `<div class="sources"><span class="src-label">Sources:</span>${chips}</div>` : ''}
-    `;
-    msg.appendChild(ans);
-  } catch(e) {
-    loading.remove();
-    const err = document.createElement('div');
-    err.className = 'a-bubble';
-    err.innerHTML = `<div class="a-content" style="color:#f85149">Error: ${e.message}</div>`;
-    msg.appendChild(err);
+    const aRow = document.createElement('div');
+    aRow.className = 'a-row';
+    aRow.innerHTML = `
+      <div class="a-bubble">
+        <div class="a-content">${fmt(d.answer)}</div>
+        ${files.length ? `<div class="sources-bar"><span class="sources-label">Sources</span>${chips}</div>` : ''}
+      </div>`;
+    msg.appendChild(aRow);
+  } catch (e) {
+    typingRow.remove();
+    const aRow = document.createElement('div');
+    aRow.className = 'a-row';
+    aRow.innerHTML = `<div class="a-bubble"><div class="a-content" style="color:var(--red)">Error: ${esc(e.message)}</div></div>`;
+    msg.appendChild(aRow);
   } finally {
     document.getElementById('askBtn').disabled = false;
-    chat.scrollTop = chat.scrollHeight;
+    messages.scrollTop = messages.scrollHeight;
   }
 }
 
@@ -330,7 +785,10 @@ function fmt(text) {
 }
 
 function esc(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(t)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function handleKey(e) {
@@ -351,7 +809,7 @@ function toast(msg, type) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = `toast show ${type}`;
-  setTimeout(() => t.className = 'toast', 3000);
+  setTimeout(() => { t.className = 'toast'; }, 3500);
 }
 
 loadStatus();
