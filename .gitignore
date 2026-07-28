@@ -45,7 +45,6 @@ dist-ssr/
 # ── Logs ──────────────────────────────────────────────────────
 *.log
 *.txt
-!PROJECT_SUMMARY.txt
 !README.md
 !**/README.md
 logs/
