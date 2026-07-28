@@ -2,6 +2,21 @@
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot 3.2 |
+| Database | PostgreSQL 15 (Docker) |
+| ORM | Spring Data JPA / Hibernate |
+| HTTP Forwarding | RestTemplate |
+| Auth | JWT validation (jjwt 0.11.5) |
+| Testing | JUnit 5, Mockito, Testcontainers |
+| Build | Maven 3.9 |
+
+---
+
 ## What Is This Project?
 
 This is a backend-only service that acts as a proxy sitting in front of other HTTP services. Instead of clients calling your backend services directly, they call this gateway. The gateway decides whether to forward the request, block it, or reject it — based on rules you configure.

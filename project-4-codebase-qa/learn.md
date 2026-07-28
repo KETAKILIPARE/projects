@@ -2,6 +2,19 @@
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Python 3.12 |
+| Framework | FastAPI |
+| Vector Search | Custom TF-IDF (numpy), cosine similarity |
+| LLM | Groq API (llama-3.1-8b-instant) |
+| Persistence | JSON file (vector_store.json) |
+| Testing | pytest |
+
+---
+
 ## What Is This Project?
 
 This is a Python service that lets you point it at any folder of source code and then ask questions about that code in plain English. It scans the files, splits them into chunks, builds a searchable index, and uses an LLM to answer your questions based on what it finds.
@@ -178,19 +191,13 @@ app/
 │   │   ├── indexer.py      — Indexer: orchestrates scan → chunk → store (caps at 15 files)
 │   │   └── qa_service.py   — QAService: retrieves chunks, builds prompt, calls Groq
 │   └── main.py             — FastAPI app setup, includes router
-├── tests/                  — pytest tests (37/39 passing)
+├── tests/                  — pytest tests (64 passing)
 ├── .env                    — GROQ_API_KEY goes here
 ├── .env.example
 ├── requirements.txt
 ├── vector_store.json       — persisted index (created after first /index call)
 └── pytest.ini
 ```
-
----
-
-## The 2 Failing Tests
-
-The 2 failing tests are in the scanner tests. They assert on file paths using forward slashes (POSIX style), but on Windows `os.path.join` returns backslashes. The scanner logic is correct — the test assertion strings just need to be updated to use `os.path.join` or `os.sep` instead of hardcoded `/`.
 
 ---
 
@@ -262,4 +269,4 @@ cd project-4-codebase-qa/app
 pytest
 ```
 
-37/39 passing. The 2 failures are path separator assertions in the scanner tests (Windows vs POSIX).
+64 tests — 64 passing.

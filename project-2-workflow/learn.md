@@ -2,6 +2,22 @@
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot 3.2 |
+| Security | Spring Security, JWT (jjwt 0.11.5) |
+| Database | PostgreSQL 15 (Docker) |
+| ORM | Spring Data JPA / Hibernate |
+| Realtime | Spring WebSocket, STOMP, SockJS |
+| Frontend | React, Vite |
+| Testing | JUnit 5, Mockito, H2 (integration tests), Instancio |
+| Build | Maven 3.9 |
+
+---
+
 ## What Is This Project?
 
 This is a full-stack task management application — similar in concept to Jira or Trello — where teams can create workspaces, invite members, and manage tasks on a Kanban-style board. When a task changes status, every browser connected to that workspace receives the update in real time via WebSockets, without needing to refresh the page.

@@ -2,6 +2,22 @@
 
 ---
 
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Language | Java 17 |
+| Framework | Spring Boot 3.2 |
+| Security | Spring Security, JWT (jjwt 0.11.5) |
+| Database | PostgreSQL 15 (Docker) |
+| ORM | Spring Data JPA / Hibernate |
+| Cloud | AWS SDK v2 (EC2, S3) |
+| Frontend | React, Vite |
+| Testing | JUnit 5, Mockito, Testcontainers, Instancio |
+| Build | Maven 3.9 |
+
+---
+
 ## What Is This Project?
 
 This is a full-stack web application that lets users provision and manage cloud resources (EC2 instances and S3 buckets) through a web UI and REST API, instead of going directly into the AWS console.
