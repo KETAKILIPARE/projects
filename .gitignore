@@ -12,6 +12,11 @@ target/
 maven/
 maven.zip
 
+# ── Corporate / Zscaler certificates ─────────────────────────
+*.pem
+*.crt
+*.cer
+
 # ── Python ────────────────────────────────────────────────────
 __pycache__/
 *.pyc

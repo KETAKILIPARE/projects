@@ -1,3 +1,6 @@
 .env
 *.env
 target/
+*.pem
+*.crt
+*.cer
